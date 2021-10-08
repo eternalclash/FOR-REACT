@@ -241,20 +241,119 @@ export default handleActions (
             setCookie("is_login", "success")
             draft.user = action.payload.user;
             draft.is_login = true
-        },
-        [LOG_OUT]: (set)
-    }
+        }),
+        [LOG_OUT]: (state,action) => 
+        produce(state,(draft)) => {
+            deleteCookie("is_login");
+            draft.user = null;
+            draft.is_login = false;
+        }),
+        [GET_USER] : (state, action) => produce(state,(draft)=> {}),
+      
+    },  initialState
 )
+```
+immer라는 불변성을 유지하는데 도와주는 라이브러리인데, react 기본속성에 대한 이해가 필요하다 <br>
+예를 들어, 컴포넌트가 리렌더링 상황이라 가정하고, 배열인 state를 state.push()를 통해서 비앨에 직접 접근하고 요소를 추가하지만<br>
+***하지만 리액트는 state라는 값은 새로운 참조값이 아니기 때문에 이전과 같은 값이라고 인식하고 리렌더링을 하지 않는다***
+즉 state를 바꾸고 돔을 다시 만들어야 react는 이전과 다른 참조값임을 알려야 한다<br>
+즉, 불변성은 어떤 값을 직접적으로 변경하지 않고 새로운 값 만들어내는 것이다.
+필요한 값을 변형하고 싶으면 어떤 값에 대한 사본을 만들어서 사용해야 한다
 
+```javascript  
+onst signupFB = (id, pwd, user_name) => {
+  return function (dispatch, getState, {history}){
 
+    auth
+      .createUserWithEmailAndPassword(id, pwd)
+      .then((user) => {
 
+        console.log(user);
+        
+        auth.currentUser.updateProfile({
+          displayName: user_name,
+        }).then(()=>{
+          dispatch(setUser({user_name: user_name, id: id, user_profile: ''}));
+          history.push('/');
+        }).catch((error) => {
+          console.log(error);
+        });
 
+        // Signed in
+        // ...
+      })
+      .catch((error) => {
+        var errorCode = error.code;
+        var errorMessage = error.message;
+
+        console.log(errorCode, errorMessage);
+        // ..
+      });
+
+  }
+}
 
 ```
+미들웨어: 액션과 리듀서 사이의 중간자로서, 액션을 디스패치할 때 리듀서에서 이를 처리하기에 앞서 사전에 지정된 작업을 실행할 수 있게 해줌<br>
+미들웨어 중에서도 redux-thunk를 활용하여 구현<br>
+```javascript
+return function (dispatch, getState, {history} ) {
+  dispatch(setUser({
+      user_name: user_name, id: id,
+      user_profile:' '
+  })) history.push('/')
+}.catch((error) => {
+    console.log(error)
+}
+```
+auth를 통한 firebase로그인 인증형식을 가지고 오고, thunk에서 매개변수로 dispatch, getState, {history}를 가지고와서 setUser를 바꿔준다음 history.push를 통해 페이지를 넘기 또한 error가 날 경우 .catch문을 활용해 콘솔창을 띄움
+
+로그인 하는 방식은 회원가입 형식가 비슷함
 
 
 
-, action 생성함수, reducer 작성, actionCreators로 export <br>
+```javascript
+const logoutFB = () => {
+  return function (dispatch, getState, {history}) {
+    auth.signOut().then(() => {
+      dispatch(logOut());
+      history.push("/");
+    });
+  };
+};
+
+```
+로그아웃: initialState처럼 값을 다시 초기화 시켜주면 된다
+
+```javascript
+const loginCheckFB = () => {
+  return function (dispatch,getState, {history}) 
+  {
+    auth.onAuthStateChanged((user)=> {
+      if(user) {
+        dispatch(
+          setUser({
+            user_name: user.displayName,
+            user_profile: "",
+            id: user.email,
+            uid: user.uid,
+          })
+        );
+
+      }else {
+        dispatch(logOut());
+      }
+    })
+  }
+}
+```
+로그인유지를 시켜주는 logincheck는 파이어베이스에 onAuthStateChanged메소드를 사용하여 user가 존재하면 그 유저의 대한 정보를 가져오면 된다.
+
+
+
+
+
+
 
 
   
